@@ -1,0 +1,255 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>タッチ対応 パドルでボールを跳ね返すゲーム (Pong風)</title>
+    <style>
+        body { 
+            margin: 0; 
+            background: #000; 
+            display: flex; 
+            flex-direction: column;
+            justify-content: center; 
+            align-items: center; 
+            min-height: 100vh;
+            touch-action: none;
+            font-family: Arial, sans-serif;
+        }
+        canvas { 
+            border: 2px solid #fff; 
+            background: #111;
+            touch-action: none;
+            max-width: 100%;
+            max-height: 100vh;
+        }
+        #restartBtn {
+            display: none;
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, 50%);
+            padding: 20px 40px;
+            font-size: 24px;
+            font-weight: bold;
+            background: #0f0;
+            color: #000;
+            border: none;
+            border-radius: 10px;
+            cursor: pointer;
+            z-index: 10;
+            min-width: 200px;
+            touch-action: manipulation;
+        }
+        #restartBtn:hover, #restartBtn:active {
+            background: #0a0;
+        }
+    </style>
+</head>
+<body>
+    <canvas id="canvas" width="800" height="600"></canvas>
+    <button id="restartBtn">リスタート</button>
+    <script>
+        const canvas = document.getElementById('canvas');
+        const ctx = canvas.getContext('2d');
+        const restartBtn = document.getElementById('restartBtn');
+
+        // ゲーム変数
+        let score = 0;
+        let gameRunning = true;
+
+        // ボール
+        const ball = {
+            x: 400,
+            y: 500,
+            radius: 10,
+            dx: 4,
+            dy: -4,
+            speed: 4
+        };
+
+        // パドル
+        const paddle = {
+            width: 100,
+            height: 15,
+            x: 350,
+            y: 570,
+            speed: 8
+        };
+
+        // キー入力
+        const keys = {};
+        window.addEventListener('keydown', (e) => keys[e.key] = true);
+        window.addEventListener('keyup', (e) => keys[e.key] = false);
+
+        // マウス/タッチ入力（パドル追従）
+        function updatePaddleFromPointer(clientX) {
+            const rect = canvas.getBoundingClientRect();
+            paddle.x = clientX - rect.left - paddle.width / 2;
+            if (paddle.x < 0) paddle.x = 0;
+            if (paddle.x + paddle.width > canvas.width) paddle.x = canvas.width - paddle.width;
+        }
+
+        canvas.addEventListener('mousemove', (e) => {
+            updatePaddleFromPointer(e.clientX);
+        });
+
+        canvas.addEventListener('touchmove', (e) => {
+            e.preventDefault();
+            const touch = e.touches[0];
+            updatePaddleFromPointer(touch.clientX);
+        }, { passive: false });
+
+        canvas.addEventListener('touchstart', (e) => {
+            e.preventDefault();
+        }, { passive: false });
+
+        function initGame() {
+            score = 0;
+            ball.x = canvas.width / 2;
+            ball.y = canvas.height - 100;
+            ball.dx = ball.speed * (Math.random() > 0.5 ? 1 : -1);
+            ball.dy = -ball.speed;
+            paddle.x = canvas.width / 2 - paddle.width / 2;
+            gameRunning = true;
+        }
+
+        function drawBall() {
+            ctx.beginPath();
+            ctx.arc(ball.x, ball.y, ball.radius, 0, Math.PI * 2);
+            ctx.fillStyle = '#fff';
+            ctx.shadowColor = '#fff';
+            ctx.shadowBlur = 10;
+            ctx.fill();
+            ctx.shadowBlur = 0;
+            ctx.closePath();
+        }
+
+        function drawPaddle() {
+            ctx.fillStyle = '#0f0';
+            ctx.shadowColor = '#0f0';
+            ctx.shadowBlur = 15;
+            ctx.fillRect(paddle.x, paddle.y, paddle.width, paddle.height);
+            ctx.shadowBlur = 0;
+        }
+
+        function drawScore() {
+            ctx.font = 'bold 36px Arial';
+            ctx.fillStyle = '#fff';
+            ctx.textAlign = 'left';
+            ctx.fillText(`スコア: ${score}`, 20, 50);
+            ctx.font = '20px Arial';
+            ctx.fillText('PC: マウス/矢印キー | スマホ/iPad: タッチドラッグ', 20, 90);
+        }
+
+        function drawGameOver() {
+            // オーバーレイ
+            ctx.fillStyle = 'rgba(0, 0, 0, 0.8)';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            // テキスト
+            ctx.fillStyle = '#fff';
+            ctx.textAlign = 'center';
+            ctx.font = 'bold 48px Arial';
+            ctx.fillText('ゲームオーバー！', canvas.width / 2, canvas.height / 2 - 50);
+            ctx.font = 'bold 36px Arial';
+            ctx.fillText(`最終スコア: ${score}`, canvas.width / 2, canvas.height / 2 + 20);
+
+            restartBtn.style.display = 'block';
+        }
+
+        function updatePaddle() {
+            // キーボード（タッチ優先だが併用OK）
+            if (keys['ArrowLeft'] || keys['a'] || keys['A']) {
+                paddle.x -= paddle.speed;
+            }
+            if (keys['ArrowRight'] || keys['d'] || keys['D']) {
+                paddle.x += paddle.speed;
+            }
+            if (paddle.x < 0) paddle.x = 0;
+            if (paddle.x + paddle.width > canvas.width) paddle.x = canvas.width - paddle.width;
+        }
+
+        function checkCollisions() {
+            // 壁衝突（左右上）
+            if (ball.x + ball.dx > canvas.width - ball.radius || ball.x + ball.dx < ball.radius) {
+                ball.dx = -ball.dx;
+                score++;
+            }
+            if (ball.y + ball.dy < ball.radius) {
+                ball.dy = -ball.dy;
+                score++;
+            }
+
+            // パドル衝突
+            if (ball.y + ball.dy + ball.radius > paddle.y &&
+                ball.x > paddle.x &&
+                ball.x < paddle.x + paddle.width) {
+                ball.dy = -Math.abs(ball.dy) * 1.02; // 加速
+                const hitPos = (ball.x - (paddle.x + paddle.width / 2)) / (paddle.width / 2);
+                ball.dx = hitPos * 7;
+                score += 2;
+            }
+
+            // ゲームオーバー
+            if (ball.y + ball.dy > canvas.height) {
+                gameRunning = false;
+            }
+        }
+
+        function update() {
+            ball.x += ball.dx;
+            ball.y += ball.dy;
+        }
+
+        function draw() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            drawBall();
+            drawPaddle();
+            drawScore();
+            if (!gameRunning) {
+                drawGameOver();
+            }
+        }
+
+        function gameLoop() {
+            updatePaddle();
+            if (gameRunning) {
+                update();
+                checkCollisions();
+                requestAnimationFrame(gameLoop);
+            }
+            draw();
+        }
+
+        // リスタートボタン
+        restartBtn.addEventListener('click', () => {
+            initGame();
+            restartBtn.style.display = 'none';
+            gameLoop();
+        });
+
+        // リサイズ対応（iPad横縦）
+        function resizeCanvas() {
+            const maxW = window.innerWidth * 0.95;
+            const maxH = window.innerHeight * 0.9;
+            const aspect = 800 / 600;
+            if (maxW / aspect > maxH) {
+                canvas.height = maxH;
+                canvas.width = maxH * aspect;
+            } else {
+                canvas.width = maxW;
+                canvas.height = maxW / aspect;
+            }
+            paddle.y = canvas.height - 30;
+            // 初期化呼び出しで位置調整
+        }
+        window.addEventListener('resize', resizeCanvas);
+        resizeCanvas(); // 初回
+
+        // ゲーム開始
+        initGame();
+        gameLoop();
+    </script>
+</body>
+</html>
