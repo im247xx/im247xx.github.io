@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ミニゲーム集</title>
+    <title>ミニゲーム集 - ボールとヘビ</title>
     <style>
         body { 
             margin: 0; 
@@ -51,13 +51,14 @@
             text-align: center;
             display: none;
             z-index: 15;
+            box-shadow: 0 0 30px #0f0;
         }
-        #controls label { font-size: 24px; color: #0f0; }
+        #controls label { font-size: 24px; color: #0f0; text-shadow: 0 0 10px #0f0; }
         #speedSlider { width: 85%; height: 20px; border-radius: 15px; background: #333; }
         #speedSlider::-webkit-slider-thumb {
             width: 40px; height: 40px; border-radius: 50%; background: #0f0; box-shadow: 0 0 20px #0f0;
         }
-        #speedValue { font-size: 28px; color: #0f0; margin-top: 10px; }
+        #speedValue { font-size: 28px; color: #0f0; text-shadow: 0 0 15px #0f0; margin-top: 10px; }
     </style>
 </head>
 <body>
@@ -67,19 +68,19 @@
     <button id="restartBtn">もう一度</button>
 
     <div id="controls">
-        <label>速さ</label>
+        <label>速さ調整</label>
         <input type="range" id="speedSlider" min="1" max="10" value="5">
         <div id="speedValue">普通（5）</div>
     </div>
 
     <div id="menu" class="menu">
-        <h1>ミニゲーム集</h1>
+        <h1>ゲームを選んでください</h1>
         <button onclick="startGame('bounce')">ボールはじくゲーム</button>
         <button onclick="startGame('snake')">ヘビゲーム</button>
     </div>
 
     <script>
-        // 1回目ここまで
+        // ここからJavaScript（1回目）
         const canvas = document.getElementById('canvas');
         const ctx = canvas.getContext('2d');
         const menu = document.getElementById('menu');
@@ -95,7 +96,7 @@
 
         speedSlider.addEventListener('input', () => {
             speedLevel = parseInt(speedSlider.value);
-            const names = ['超遅', '遅め', '少し遅', 'やや遅', '普通', 'やや速', '少し速', '速め', '高速', '超速'];
+            const names = ['超遅い', '遅い', '少し遅い', 'やや遅い', '普通', 'やや速い', '少し速い', '速い', '高速', '超速い'];
             speedValue.textContent = names[speedLevel - 1] + `（${speedLevel}）`;
         });
 
@@ -129,9 +130,8 @@
             ctx.clearRect(0, 0, canvas.width, canvas.height);
         };
 
-        // ここまでが1回目！ 保存したら「2回目ください」って言ってね！
-                // 2回目！ これを1回目の<script>の最後に貼り付けてください！
-        // 1回目の終わりに「// ここまでが1回目！」ってあったところのすぐ下にこのコードを全部貼る
+        // 1回目ここまでく        // 2回目！ これを1回目の<script>の最後に貼り付けてください！
+        // 1回目の終わりに「// 1回目ここまで」ってあったところのすぐ下に全部貼る
 
         const keys = {};
         window.addEventListener('keydown', e => keys[e.key] = true);
@@ -169,8 +169,8 @@
                 const rect = canvas.getBoundingClientRect();
                 bounce.paddle.x = clientX - rect.left - bounce.paddle.width / 2;
             } else {
-                if (keys['ArrowLeft'] || keys['a'] || keys['A']) bounce.paddle.x -= 12;
-                if (keys['ArrowRight'] || keys['d'] || keys['D']) bounce.paddle.x += 12;
+                if (keys['ArrowLeft'] || keys['a'] || keys['A']) bounce.paddle.x -= 15;
+                if (keys['ArrowRight'] || keys['d'] || keys['D']) bounce.paddle.x += 15;
             }
             bounce.paddle.x = Math.max(0, Math.min(canvas.width - bounce.paddle.width, bounce.paddle.x));
         }
@@ -182,6 +182,7 @@
             ctx.arc(bounce.ball.x, bounce.ball.y, bounce.ball.radius, 0, Math.PI * 2);
             ctx.fillStyle = '#fff';
             ctx.fill();
+            ctx.closePath();
             // パドル
             ctx.fillStyle = '#0f0';
             ctx.fillRect(bounce.paddle.x, bounce.paddle.y, bounce.paddle.width, bounce.paddle.height);
@@ -205,7 +206,8 @@
                 bounce.score++;
             }
             if (bounce.ball.y + bounce.ball.radius > bounce.paddle.y &&
-                bounce.ball.x > bounce.paddle.x && bounce.ball.x < bounce.paddle.x + bounce.paddle.width) {
+                bounce.ball.x > bounce.paddle.x && bounce.ball.x < bounce.paddle.x + bounce.paddle.width &&
+                bounce.ball.dy > 0) {
                 bounce.ball.dy = -Math.abs(bounce.ball.dy) * 1.03;
                 const hit = (bounce.ball.x - (bounce.paddle.x + bounce.paddle.width / 2)) / (bounce.paddle.width / 2);
                 bounce.ball.dx = hit * 8;
@@ -221,24 +223,32 @@
         const BASE = 200;
 
         function initSnake() {
-            snake.body = [{x:10, y:10}];
+            snake.body = [{x: Math.floor(canvas.width / GRID / 2), y: Math.floor(canvas.height / GRID / 2)}];
             snake.dir = {x:1, y:0};
-            snake.food = {x: Math.floor(Math.random() * (canvas.width/GRID)), y: Math.floor(Math.random() * (canvas.height/GRID - 5)) + 1};
+            snake.food = generateFood();
             snake.score = 0;
             gameRunning = true;
+        }
+
+        function generateFood() {
+            let food;
+            do {
+                food = {x: Math.floor(Math.random() * (canvas.width / GRID)), y: Math.floor(Math.random() * (canvas.height / GRID))};
+            } while (snake.body.some(s => s.x === food.x && s.y === food.y));
+            return food;
         }
 
         function drawSnake() {
             ctx.clearRect(0, 0, canvas.width, canvas.height);
             // 体
             ctx.fillStyle = '#0f0';
-            snake.body.forEach(seg => ctx.fillRect(seg.x * GRID, seg.y * GRID, GRID-2, GRID-2));
+            snake.body.forEach(seg => ctx.fillRect(seg.x * GRID, seg.y * GRID, GRID - 2, GRID - 2));
             // 頭
             ctx.fillStyle = '#fff';
-            ctx.fillRect(snake.body[0].x * GRID + 2, snake.body[0].y * GRID + 2, GRID-6, GRID-6);
+            ctx.fillRect(snake.body[0].x * GRID + 2, snake.body[0].y * GRID + 2, GRID - 6, GRID - 6);
             // 食べ物
             ctx.fillStyle = '#f00';
-            ctx.fillRect(snake.food.x * GRID + 4, snake.food.y * GRID + 4, GRID-10, GRID-10);
+            ctx.fillRect(snake.food.x * GRID + 4, snake.food.y * GRID + 4, GRID - 10, GRID - 10);
             // スコア
             ctx.font = 'bold 40px Arial';
             ctx.fillStyle = '#fff';
@@ -260,9 +270,26 @@
             if (e.key === 'ArrowRight' || e.key === 'd') changeDir({x:1,y:0});
         });
 
+        let touchStart = null;
+        canvas.addEventListener('touchstart', e => {
+            if (currentGame === 'snake') touchStart = e.touches[0];
+        });
+        canvas.addEventListener('touchmove', e => {
+            if (currentGame === 'snake' && touchStart) {
+                const touch = e.touches[0];
+                const dx = touch.clientX - touchStart.clientX;
+                const dy = touch.clientY - touchStart.clientY;
+                if (Math.abs(dx) > 30 || Math.abs(dy) > 30) {
+                    if (Math.abs(dx) > Math.abs(dy)) changeDir(dx > 0 ? {x:1,y:0} : {x:-1,y:0});
+                    else changeDir(dy > 0 ? {x:0,y:1} : {x:0,y:-1});
+                    touchStart = null;
+                }
+            }
+        });
+
         function updateSnake() {
             const head = {x: snake.body[0].x + snake.dir.x, y: snake.body[0].y + snake.dir.y};
-            if (head.x < 0 || head.x >= canvas.width/GRID || head.y < 0 || head.y >= canvas.height/GRID ||
+            if (head.x < 0 || head.x >= canvas.width / GRID || head.y < 0 || head.y >= canvas.height / GRID ||
                 snake.body.some(s => s.x === head.x && s.y === head.y)) {
                 gameRunning = false;
                 return;
@@ -270,7 +297,7 @@
             snake.body.unshift(head);
             if (head.x === snake.food.x && head.y === snake.food.y) {
                 snake.score += 10;
-                snake.food = {x: Math.floor(Math.random() * (canvas.width/GRID)), y: Math.floor(Math.random() * (canvas.height/GRID - 5)) + 1};
+                snake.food = generateFood();
             } else {
                 snake.body.pop();
             }
@@ -289,15 +316,15 @@
         };
 
         function drawOver() {
-            ctx.fillStyle = 'rgba(0,0,0,0.7)';
+            ctx.fillStyle = 'rgba(0,0,0,0.8)';
             ctx.fillRect(0, 0, canvas.width, canvas.height);
             ctx.fillStyle = '#fff';
             ctx.textAlign = 'center';
-            ctx.font = 'bold 50px Arial';
-            ctx.fillText('ゲームオーバー', canvas.width/2, canvas.height/2);
-            ctx.font = '40px Arial';
+            ctx.font = 'bold 60px Arial';
+            ctx.fillText('ゲームオーバー', canvas.width/2, canvas.height/2 - 30);
+            ctx.font = 'bold 40px Arial';
             const sc = currentGame === 'bounce' ? bounce.score : snake.score;
-            ctx.fillText(`スコア: ${sc}`, canvas.width/2, canvas.height/2 + 60);
+            ctx.fillText(`最終スコア: ${sc}`, canvas.width/2, canvas.height/2 + 40);
             restartBtn.style.display = 'block';
         }
 
