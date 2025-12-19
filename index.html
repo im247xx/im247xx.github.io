@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bounce Ball Game</title>
+    <style>
+        body { 
+            margin: 0; 
+            background: #000; 
+            display: flex; 
+            flex-direction: column;
+            justify-content: center; 
+            align-items: center; 
+            min-height: 100vh;
+            touch-action: none;
+            font-family: 'Arial', sans-serif;
+        }
+        canvas { 
+            border: 3px solid #fff; 
+            background: #111;
+            touch-action: none;
+            max-width: 95vw;
+            max-height: 80vh;
+        }
+        #restartBtn {
+            display: none;
+            margin-top: 20px;
+            padding: 15px 30px;
+            font-size: 24px;
+            font-weight: bold;
+            background: #0f0;
+            color: #000;
+            border: none;
+            border-radius: 12px;
+            cursor: pointer;
+            z-index: 10;
+        }
+        #restartBtn:hover { background: #0c0; }
+        h1 { color: white; margin-bottom: 10px; }
+    </style>
+</head>
+<body>
+    <h1>Bounce Ball Game</h1>
+    <canvas id="canvas" width="800" height="600"></canvas>
+    <button id="restartBtn">リスタート</button>
+    <script>
+        const canvas = document.getElementById('canvas');
+        const ctx = canvas.getContext('2d');
+        const restartBtn = document.getElementById('restartBtn');
+
+        let score = 0;
+        let gameRunning = true;
+
+        const ball = { x: 400, y: 500, radius: 10, dx: 4, dy: -4, speed: 4 };
+        const paddle = { width: 100, height: 15, x: 350, y: 570, speed: 8 };
+
+        const keys = {};
+        window.addEventListener('keydown', e => keys[e.key] = true);
+        window.addEventListener('keyup', e => keys[e.key] = false);
+
+        function updatePaddleFromPointer(clientX) {
+            const rect = canvas.getBoundingClientRect();
+            paddle.x = clientX - rect.left - paddle.width / 2;
+            paddle.x = Math.max(0, Math.min(canvas.width - paddle.width, paddle.x));
+        }
+
+        canvas.addEventListener('mousemove', e => updatePaddleFromPointer(e.clientX));
+        canvas.addEventListener('touchmove', e => {
+            e.preventDefault();
+            updatePaddleFromPointer(e.touches[0].clientX);
+        }, { passive: false });
+
+        function initGame() {
+            score = 0;
+            ball.x = canvas.width / 2;
+            ball.y = canvas.height - 100;
+            ball.dx = ball.speed * (Math.random() > 0.5 ? 1 : -1);
+            ball.dy = -ball.speed;
+            paddle.x = canvas.width / 2 - paddle.width / 2;
+            gameRunning = true;
+            restartBtn.style.display = 'none';
+        }
+
+        function drawBall() {
+            ctx.beginPath();
+            ctx.arc(ball.x, ball.y, ball.radius, 0, Math.PI * 2);
+            ctx.fillStyle = '#fff';
+            ctx.shadowBlur = 15; ctx.shadowColor = '#fff';
+            ctx.fill();
+            ctx.shadowBlur = 0;
+        }
+
+        function drawPaddle() {
+            ctx.fillStyle = '#0f0';
+            ctx.shadowBlur = 15; ctx.shadowColor = '#0f0';
+            ctx.fillRect(paddle.x, paddle.y, paddle.width, paddle.height);
+            ctx.shadowBlur = 0;
+        }
+
+        function drawScore() {
+            ctx.font = 'bold 36px Arial';
+            ctx.fillStyle = '#fff';
+            ctx.fillText(`スコア: ${score}`, 20, 50);
+        }
+
+        function drawGameOver() {
+            ctx.fillStyle = 'rgba(0,0,0,0.7)';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            ctx.fillStyle = '#fff';
+            ctx.textAlign = 'center';
+            ctx.font = 'bold 50px Arial';
+            ctx.fillText('ゲームオーバー', canvas.width/2, canvas.height/2 - 30);
+            ctx.font = '36px Arial';
+            ctx.fillText(`最終スコア: ${score}`, canvas.width/2, canvas.height/2 + 30);
+            restartBtn.style.display = 'block';
+        }
+
+        function updatePaddle() {
+            if (keys['ArrowLeft'] || keys['a'] || keys['A']) paddle.x -= paddle.speed;
+            if (keys['ArrowRight'] || keys['d'] || keys['D']) paddle.x += paddle.speed;
+            paddle.x = Math.max(0, Math.min(canvas.width - paddle.width, paddle.x));
+        }
+
+        function checkCollisions() {
+            if (ball.x + ball.dx > canvas.width - ball.radius || ball.x + ball.dx < ball.radius) {
+                ball.dx = -ball.dx; score++;
+            }
+            if (ball.y + ball.dy < ball.radius) {
+                ball.dy = -ball.dy; score++;
+            }
+            if (ball.y + ball.dy + ball.radius > paddle.y && ball.x > paddle.x && ball.x < paddle.x + paddle.width) {
+                ball.dy = -Math.abs(ball.dy) * 1.02;
+                const hit = (ball.x - (paddle.x + paddle.width/2)) / (paddle.width/2);
+                ball.dx = hit * 7;
+                score += 2;
+            }
+            if (ball.y > canvas.height) gameRunning = false;
+        }
+
+        function gameLoop() {
+            updatePaddle();
+            if (gameRunning) {
+                ball.x += ball.dx;
+                ball.y += ball.dy;
+                checkCollisions();
+            }
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            drawBall();
+            drawPaddle();
+            drawScore();
+            if (!gameRunning) drawGameOver();
+            requestAnimationFrame(gameLoop);
+        }
+
+        function resizeCanvas() {
+            const aspect = 800 / 600;
+            const maxW = window.innerWidth * 0.95;
+            const maxH = window.innerHeight * 0.8;
+            if (maxW / aspect < maxH) {
+                canvas.width = maxW;
+                canvas.height = maxW / aspect;
+            } else {
+                canvas.height = maxH;
+                canvas.width = maxH * aspect;
+            }
+            paddle.y = canvas.height - 30;
+        }
+        window.addEventListener('resize', resizeCanvas);
+        resizeCanvas();
+
+        restartBtn.addEventListener('click', initGame);
+        initGame();
+        gameLoop();
+    </script>
+</body>
+</html>
