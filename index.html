@@ -39,26 +39,27 @@
         #restartBtn { right: 20px; display: none; }
         #controls {
             position: absolute;
-            bottom: 20px;
-            left: 50%;
-            transform: translateX(-50%);
-            width: 90%;
-            max-width: 500px;
-            background: rgba(0,0,0,0.8);
-            padding: 20px;
-            border: 2px solid #0f0;
-            border-radius: 20px;
+            top: 70px;  /* 上の方に移動（メニュー下） */
+            right: 10px;  /* 右隅に */
+            left: auto;
+            transform: none;
+            width: auto;  /* 自動幅で小さく */
+            max-width: 200px;  /* 最大幅制限 */
+            background: rgba(0,0,0,0.5);  /* もっと半透明に */
+            padding: 10px;
+            border: 1px solid #0f0;  /* ボーダー細く */
+            border-radius: 15px;
             text-align: center;
             display: none;
             z-index: 15;
-            box-shadow: 0 0 30px #0f0;
+            box-shadow: 0 0 15px #0f0;  /* 影弱く */
         }
-        #controls label { font-size: 24px; color: #0f0; text-shadow: 0 0 10px #0f0; }
-        #speedSlider { width: 85%; height: 20px; border-radius: 15px; background: #333; }
+        #controls label { font-size: 16px; }  /* 文字小さく */
+        #speedSlider { width: 150px; height: 15px; }  /* スライダー短く細く */
         #speedSlider::-webkit-slider-thumb {
-            width: 40px; height: 40px; border-radius: 50%; background: #0f0; box-shadow: 0 0 20px #0f0;
+            width: 25px; height: 25px;  /* つまみ小さく */
         }
-        #speedValue { font-size: 28px; color: #0f0; text-shadow: 0 0 15px #0f0; margin-top: 10px; }
+        #speedValue { font-size: 18px; margin-top: 5px; }
     </style>
 </head>
 <body>
